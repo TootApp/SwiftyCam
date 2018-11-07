@@ -248,50 +248,74 @@ open class SwiftyCamViewController: UIViewController {
 	override open var shouldAutorotate: Bool {
 		return allowAutoRotate
 	}
-
-	// MARK: ViewDidLoad
-
-	/// ViewDidLoad Implementation
-
-	override open func viewDidLoad() {
-		super.viewDidLoad()
+    
+    open var shouldAutoprompt: Bool {
+        return true
+    }
+    
+    // MARK: ViewDidLoad
+    
+    /// ViewDidLoad Implementation
+    
+    override open func viewDidLoad() {
+        super.viewDidLoad()
         previewLayer = PreviewView(frame: view.frame, videoGravity: videoGravity)
         previewLayer.center = view.center
         view.addSubview(previewLayer)
         view.sendSubviewToBack(previewLayer)
-
-		// Add Gesture Recognizers
+        
+        // Add Gesture Recognizers
         
         addGestureRecognizers()
-
-		previewLayer.session = session
-
-		// Test authorization status for Camera and Micophone
-
+        
+        previewLayer.session = session
+        
+        // Test authorization status for Camera and Micophone
+        
         switch AVCaptureDevice.authorizationStatus(for: .video){
-		case .authorized:
-
-			// already authorized
-			break
-		case .notDetermined:
-
-			// not yet determined
-			sessionQueue.suspend()
+        case .authorized:
+            
+            // already authorized
+            break
+        case .notDetermined:
+            
+            // not yet determined
+            sessionQueue.suspend()
+            
+            if shouldAutoprompt {
+                authorizationPrompt()
+            }
+        default:
+            
+            // already been asked. Denied access
+            setupResult = .notAuthorized
+        }
+        sessionQueue.async { [unowned self] in
+            self.configureSession()
+        }
+    }
+    
+    func authorizationPrompt() {
+        switch AVCaptureDevice.authorizationStatus(for: .video){
+        case .authorized:
+            
+            // already authorized
+            break
+        case .notDetermined:
+            
+            // not yet determined
             AVCaptureDevice.requestAccess(for: .video, completionHandler: { [unowned self] granted in
-				if !granted {
-					self.setupResult = .notAuthorized
-				}
-				self.sessionQueue.resume()
-			})
-		default:
-
-			// already been asked. Denied access
-			setupResult = .notAuthorized
-		}
-		sessionQueue.async { [unowned self] in
-			self.configureSession()
-		}
-	}
+                if !granted {
+                    self.setupResult = .notAuthorized
+                }
+                self.sessionQueue.resume()
+            })
+        default:
+            
+            // already been asked. Denied access
+            setupResult = .notAuthorized
+        }
+    }
 
     // MARK: ViewDidLayoutSubviews
     
