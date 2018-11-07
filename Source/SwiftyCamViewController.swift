@@ -295,25 +295,23 @@ open class SwiftyCamViewController: UIViewController {
         }
     }
     
-    func authorizationPrompt() {
+    public func authorizationPrompt(completed: ((Bool, Bool) -> Void)? = nil) {
         switch AVCaptureDevice.authorizationStatus(for: .video){
         case .authorized:
-            
-            // already authorized
-            break
+            completed?(true, true)
         case .notDetermined:
-            
-            // not yet determined
             AVCaptureDevice.requestAccess(for: .video, completionHandler: { [unowned self] granted in
                 if !granted {
                     self.setupResult = .notAuthorized
+                } else {
+                    self.sessionQueue.resume()
                 }
-                self.sessionQueue.resume()
+                
+                completed?(false, granted)
             })
         default:
-            
-            // already been asked. Denied access
             setupResult = .notAuthorized
+            completed?(false, false)
         }
     }
 
